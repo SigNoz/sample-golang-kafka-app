@@ -10,6 +10,8 @@ import (
 	"syscall"
 
 	"github.com/Shopify/sarama"
+	config "github.com/SigNoz/sample-golang-kafka-app/config"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
 )
 
 var (
@@ -17,6 +19,9 @@ var (
 )
 
 func main() {
+
+	cleanup := config.InitTracer()
+	defer cleanup(context.Background())
 
 	keepRunning := true
 	log.Println("Starting a new Sarama consumer")
@@ -29,6 +34,8 @@ func main() {
 	consumer := Consumer{
 		ready: make(chan bool),
 	}
+
+	handler := otelsarama.WrapConsumerGroupHandler(&consumer)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	client, err := sarama.NewConsumerGroup(strings.Split(kafkaAddress, ","), "example", config)
@@ -45,7 +52,7 @@ func main() {
 			// `Consume` should be called inside an infinite loop, when a
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
-			if err := client.Consume(ctx, strings.Split("quickstart", ","), &consumer); err != nil {
+			if err := client.Consume(ctx, strings.Split("quickstart", ","), handler); err != nil {
 				log.Panicf("Error from consumer: %v", err)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
