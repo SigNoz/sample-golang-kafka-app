@@ -19,17 +19,11 @@ import (
 
 var (
 	serviceName  = os.Getenv("SERVICE_NAME")
-	signozToken  = os.Getenv("SIGNOZ_ACCESS_TOKEN")
 	collectorURL = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	insecure     = os.Getenv("INSECURE_MODE")
 )
 
 func InitTracer() func(context.Context) error {
-
-	headers := map[string]string{
-		"signoz-access-token": signozToken,
-	}
-
 	secureOption := otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
 	if len(insecure) > 0 {
 		secureOption = otlptracegrpc.WithInsecure()
@@ -42,7 +36,6 @@ func InitTracer() func(context.Context) error {
 		otlptracegrpc.NewClient(
 			secureOption,
 			otlptracegrpc.WithEndpoint(collectorURL),
-			otlptracegrpc.WithHeaders(headers),
 		),
 	)
 
